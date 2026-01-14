@@ -12,7 +12,7 @@ class Book(models.Model):
         max_length=32, choices=CoverType.choices, default=CoverType.SOFT
     )
     inventory = models.PositiveIntegerField()
-    daily_fee = models.DecimalField()
+    daily_fee = models.DecimalField(decimal_places=2, max_digits=8)
 
     class Meta:
         ordering = ["title"]
