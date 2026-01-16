@@ -1,8 +1,12 @@
+from datetime import date
+
 from django.db import transaction
 from django.db.models import F
-from rest_framework import viewsets, mixins
+from rest_framework import viewsets, mixins, status
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.response import Response
 
 from books.models import Book
 from borrowings.models import Borrowing
@@ -61,3 +65,26 @@ class BorrowingViewSet(
             book.inventory = F("inventory") - 1
             book.save(update_fields=["inventory"])
             serializer.save(user=self.request.user)
+
+    @action(
+        detail=True,
+        methods=["POST"],
+        permission_classes=(IsAdminUser,),
+        url_path="return",
+        url_name="return",
+    )
+    def return_book(self, request, *args, **kwargs):
+        borrowing = self.get_object()
+        if borrowing.actual_return_date is not None:
+            raise ValidationError(
+                {"actual_return_date": "The book is already returned."}
+            )
+
+        with transaction.atomic():
+            borrowing.actual_return_date = date.today()
+            borrowing.save(update_fields=["actual_return_date"])
+
+            borrowing.book.inventory = F("inventory") + 1
+            borrowing.book.save(update_fields=["inventory"])
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
