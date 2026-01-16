@@ -35,9 +35,15 @@ class BorrowingViewSet(
 
         if self.action == "list":
             is_active = self.request.query_params.get("is_active")
-            if is_active.lower() in ("true", "yes", "1", "active", "y"):
+            if is_active and is_active.lower() in (
+                "true",
+                "yes",
+                "1",
+                "active",
+                "y",
+            ):
                 qs = qs.filter(actual_return_date=None)
-            elif is_active.lower() in (
+            elif is_active and is_active.lower() in (
                 "false",
                 "no",
                 "not",
