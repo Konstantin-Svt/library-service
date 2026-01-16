@@ -1,11 +1,17 @@
+from datetime import date
+
+from django.core.validators import MinValueValidator
 from rest_framework import serializers
 
+from books.models import Book
 from books.serializers import BookSerializer
-from borrowings.models import Borrowing
+from borrowings.models import Borrowing, validate_borrowing_dates
 
 
 class BorrowingListSerializer(serializers.ModelSerializer):
-    book = serializers.SlugRelatedField(read_only=True, slug_field="title")
+    book = serializers.SlugRelatedField(
+        slug_field="title", queryset=Book.objects.all()
+    )
 
     class Meta:
         model = Borrowing
@@ -15,9 +21,30 @@ class BorrowingListSerializer(serializers.ModelSerializer):
             "book",
             "borrow_date",
             "expected_return_date",
-            "actual_return_date"
+            "actual_return_date",
         )
+        read_only_fields = ("id", "user", "actual_return_date")
 
 
 class BorrowingDetailSerializer(BorrowingListSerializer):
     book = BookSerializer(read_only=True)
+
+
+class BorrowingCreateSerializer(BorrowingListSerializer):
+    borrow_date = serializers.DateField(
+        validators=[MinValueValidator(date.today)]
+    )
+    expected_return_date = serializers.DateField(
+        validators=[MinValueValidator(date.today)]
+    )
+
+    def validate(self, data):
+        super().validate(data)
+        validate_borrowing_dates(
+            data["borrow_date"],
+            data["expected_return_date"],
+            None,
+            serializers.ValidationError,
+        )
+        book = data["book"]
+        return data
