@@ -35,8 +35,18 @@ class BorrowingViewSet(
 
         if self.action == "list":
             is_active = self.request.query_params.get("is_active")
-            if is_active:
+            if is_active.lower() in ("true", "yes", "1", "active", "y"):
                 qs = qs.filter(actual_return_date=None)
+            elif is_active.lower() in (
+                "false",
+                "no",
+                "not",
+                "0",
+                "inactive",
+                "n",
+            ):
+                qs = qs.exclude(actual_return_date=None)
+
             user_id = self.request.query_params.get("user_id")
             if user_id:
                 qs = qs.filter(user=user_id)
@@ -44,7 +54,6 @@ class BorrowingViewSet(
         if self.request.user.is_staff:
             return qs
         return qs.filter(user=self.request.user)
-
 
     def perform_create(self, serializer):
         with transaction.atomic():
