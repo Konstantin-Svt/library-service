@@ -2,6 +2,7 @@ from django.db import transaction
 from django.db.models import F
 from rest_framework import viewsets, mixins
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
 
 from books.models import Book
 from borrowings.models import Borrowing
@@ -19,6 +20,7 @@ class BorrowingViewSet(
     viewsets.GenericViewSet,
 ):
     queryset = Borrowing.objects.select_related("book")
+    permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -27,6 +29,22 @@ class BorrowingViewSet(
             return BorrowingDetailSerializer
         else:
             return BorrowingCreateSerializer
+
+    def get_queryset(self):
+        qs = self.queryset
+
+        if self.action == "list":
+            is_active = self.request.query_params.get("is_active")
+            if is_active:
+                qs = qs.filter(actual_return_date=None)
+            user_id = self.request.query_params.get("user_id")
+            if user_id:
+                qs = qs.filter(user=user_id)
+
+        if self.request.user.is_staff:
+            return qs
+        return qs.filter(user=self.request.user)
+
 
     def perform_create(self, serializer):
         with transaction.atomic():
