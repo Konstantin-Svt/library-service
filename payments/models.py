@@ -23,4 +23,8 @@ class Payment(models.Model):
     money_to_pay = models.DecimalField(decimal_places=2, max_digits=20)
 
     def __str__(self):
-        return f"session_url: {self.session_url}, session_id: {self.session_id}, status: {self.status}"
+        return (
+            f"session_url: {self.session_url}, "
+            f"session_id: {self.session_id}, "
+            f"status: {self.status}"
+        )
