@@ -19,7 +19,7 @@ class Payment(models.Model):
         related_name="payments",
     )
     session_url = models.URLField()
-    session_id = models.IntegerField()
+    session_id = models.CharField(max_length=200)
     money_to_pay = models.DecimalField(decimal_places=2, max_digits=20)
 
     def __str__(self):
