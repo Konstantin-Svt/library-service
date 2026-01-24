@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "users",
     "borrowings",
     "notifications",
+    "payments",
 ]
 
 MIDDLEWARE = [
@@ -149,3 +150,9 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=10, minute=0)
     }
 }
+
+CELERY_TASK_ALWAYS_EAGER = True
+
+# STRIPE
+
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
