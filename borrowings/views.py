@@ -24,7 +24,9 @@ class BorrowingViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Borrowing.objects.select_related("book")
+    queryset = Borrowing.objects.select_related("book").prefetch_related(
+        "payments"
+    )
     permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):
@@ -78,8 +80,6 @@ class BorrowingViewSet(
 
             borrowing = serializer.save(user=self.request.user)
             create_stripe_payment(borrowing)
-
-
 
     @action(
         detail=True,
