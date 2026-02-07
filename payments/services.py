@@ -79,3 +79,10 @@ def create_stripe_payment(
         session_url=session.url,
     )
     return payment
+
+
+def is_paid(session_id: str) -> bool:
+    if session_id:
+        session = stripe.checkout.Session.retrieve(session_id)
+        return session.payment_status == "paid"
+    return False
