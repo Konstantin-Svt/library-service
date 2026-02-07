@@ -69,7 +69,7 @@ class BorrowingViewSet(
             book.save(update_fields=["inventory"])
 
             borrowing = serializer.save(user=self.request.user)
-            create_stripe_payment(borrowing)
+            create_stripe_payment(self.request, borrowing)
 
     @action(
         detail=True,
