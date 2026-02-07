@@ -2,6 +2,8 @@ from decimal import Decimal
 
 import stripe
 from django.conf import settings
+from django.http import HttpRequest
+from rest_framework.reverse import reverse
 
 from borrowings.models import Borrowing
 from payments.models import Payment
@@ -24,7 +26,11 @@ def calculate_payable_days(
 
 
 def build_stripe_kwargs(
-    title: str, payment_type: Payment.PaymentType, days: int, price: Decimal
+    request: HttpRequest,
+    title: str,
+    payment_type: Payment.PaymentType,
+    days: int,
+    price: Decimal,
 ) -> dict:
     extra = "" if payment_type == Payment.PaymentType.PAYMENT else " overdue"
     price_in_cents = int(price * 100)
@@ -44,19 +50,25 @@ def build_stripe_kwargs(
             }
         ],
         "mode": "payment",
-        "success_url": "https://stripe.com/checkout",
+        "success_url": f"{reverse('payments:payment-success', request=request)}"
+        + "?session_id={CHECKOUT_SESSION_ID}",
+        "cancel_url": f"{reverse('payments:payment-cancel', request=request)}"
+        + "?session_id={CHECKOUT_SESSION_ID}",
     }
     return kwargs
 
 
 def create_stripe_payment(
+    request: HttpRequest,
     borrowing: Borrowing,
     payment_type: Payment.PaymentType = Payment.PaymentType.PAYMENT,
 ) -> Payment:
     days = calculate_payable_days(borrowing, payment_type)
     price = days * borrowing.book.daily_fee
     session = stripe.checkout.Session.create(
-        **build_stripe_kwargs(borrowing.book.title, payment_type, days, price)
+        **build_stripe_kwargs(
+            request, borrowing.book.title, payment_type, days, price
+        )
     )
     payment = Payment.objects.create(
         status=Payment.PaymentStatus.PENDING,
