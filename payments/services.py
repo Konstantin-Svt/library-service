@@ -93,8 +93,12 @@ def create_stripe_payment(
     return payment
 
 
-def is_paid(session_id: str) -> bool:
-    if session_id:
-        session = stripe.checkout.Session.retrieve(session_id)
-        return session.payment_status == "paid"
-    return False
+def mark_paid(session_id: str) -> None:
+    payment = Payment.objects.filter(
+        session_id=session_id,
+        status=Payment.PaymentStatus.PENDING,
+    ).first()
+
+    if payment:
+        payment.status = Payment.PaymentStatus.PAID
+        payment.save(update_fields=["status"])
