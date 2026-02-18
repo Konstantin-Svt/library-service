@@ -1,5 +1,7 @@
 import stripe
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import ValidationError
@@ -25,6 +27,16 @@ class PaymentsViewSet(
             return qs
         return qs.filter(borrowing__user=self.request.user)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                description="Stripe session ID",
+                type=OpenApiTypes.STR,
+                required=True
+            )
+        ]
+    )
     @action(
         detail=False,
         methods=["GET"],
@@ -34,6 +46,9 @@ class PaymentsViewSet(
         url_name="success",
     )
     def payment_success(self, request):
+        """
+        Endpoint for Stripe success-url redirect.
+        """
         session_id = self.request.query_params.get("session_id")
         if not session_id:
             raise ValidationError("session_id query param is required")
@@ -44,6 +59,16 @@ class PaymentsViewSet(
             {"status": payment.get_status_display()}, status=status.HTTP_200_OK
         )
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                description="Stripe session ID",
+                type=OpenApiTypes.STR,
+                required=True
+            )
+        ]
+    )
     @action(
         detail=False,
         methods=["GET"],
@@ -53,6 +78,9 @@ class PaymentsViewSet(
         url_name="cancel",
     )
     def payment_cancel(self, request):
+        """
+        Endpoint for Stripe cancel-url redirect.
+        """
         session_id = self.request.query_params.get("session_id")
         if not session_id:
             raise ValidationError("session_id query param is required")
@@ -71,6 +99,10 @@ class PaymentsViewSet(
 @csrf_exempt
 @api_view(http_method_names=["POST"])
 def stripe_webhook(request):
+    """
+    Endpoint for Stripe 'successful payment' event webhook.
+    Should not be used by frontend directly.
+    """
     payload = request.body
     sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
 

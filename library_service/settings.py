@@ -33,7 +33,7 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = ["0.0.0.0"]
+ALLOWED_HOSTS = ["127.0.0.1", "0.0.0.0"]
 
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     #libs
     "debug_toolbar",
     "rest_framework",
+    "drf_spectacular",
     #apps
     "books",
     "users",
@@ -140,7 +141,8 @@ STATIC_URL = "static/"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"
 }
 
 SIMPLE_JWT = {
