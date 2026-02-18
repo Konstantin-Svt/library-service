@@ -25,12 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-3n7z*0pr-+^6b&uzc*-a=s!=&#kcz!w@*@@q#il%09z%t*_$k@"
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-3n7z*0pr-+^6b&uzc*-a=s!=&#kcz!w@*@@q#il%09z%t*_$k@"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["0.0.0.0"]
 
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -160,8 +163,6 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=10, minute=0)
     }
 }
-
-CELERY_TASK_ALWAYS_EAGER = True
 
 # STRIPE
 
