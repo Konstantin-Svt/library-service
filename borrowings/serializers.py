@@ -49,5 +49,4 @@ class BorrowingCreateSerializer(BorrowingListSerializer):
             None,
             serializers.ValidationError,
         )
-        book = data["book"]
         return data
