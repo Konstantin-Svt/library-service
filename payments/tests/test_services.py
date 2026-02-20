@@ -144,25 +144,25 @@ class TestServices(TestCase):
         STRIPE_FINE_MULTIPLIER=3,
     )
     def test_calculate_fine_prices(self):
-            daily_fees = [
-                Decimal("1.00"),
-                Decimal("0.01"),
-                Decimal("0.00"),
-                Decimal("2.33"),
-            ]
-            days = [5, 7, 1, 3]
-            results = [
-                Decimal("15.00"),
-                Decimal("0.21"),
-                Decimal("0.00"),
-                Decimal("20.97"),
-            ]
+        daily_fees = [
+            Decimal("1.00"),
+            Decimal("0.01"),
+            Decimal("0.00"),
+            Decimal("2.33"),
+        ]
+        days = [5, 7, 1, 3]
+        results = [
+            Decimal("15.00"),
+            Decimal("0.21"),
+            Decimal("0.00"),
+            Decimal("20.97"),
+        ]
 
-            for fee, day, result in zip(daily_fees, days, results):
-                with self.subTest(fee=fee, day=day):
-                    count = calculate_price(
-                        daily_fee=fee,
-                        days=day,
-                        payment_type=Payment.PaymentType.FINE,
-                    )
-                    self.assertEqual(count, result)
+        for fee, day, result in zip(daily_fees, days, results):
+            with self.subTest(fee=fee, day=day):
+                count = calculate_price(
+                    daily_fee=fee,
+                    days=day,
+                    payment_type=Payment.PaymentType.FINE,
+                )
+                self.assertEqual(count, result)

@@ -39,7 +39,7 @@ class TestViews(TestCase):
         )
 
     def test_payment_list_view(self):
-        payment = Payment.objects.create(
+        Payment.objects.create(
             borrowing=self.borrowing,
             status="PAID",
             type="PAYMENT",

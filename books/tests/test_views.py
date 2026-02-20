@@ -59,7 +59,7 @@ class TestViews(APITestCase):
             "inventory": "10",
             "daily_fee": "1.00",
         }
-        book = Book.objects.create(**data)
+        Book.objects.create(**data)
         url = reverse("books:book-detail", kwargs={"pk": 1})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
