@@ -9,7 +9,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from library_service.settings import STRIPE_WEBHOOK_SECRET
+from django.conf import settings
 from payments.models import Payment
 from payments.serializers import PaymentSerializer
 from payments.services import mark_paid
@@ -108,7 +108,7 @@ def stripe_webhook(request):
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except (ValueError, stripe.error.SignatureVerificationError):
         return Response(status=status.HTTP_400_BAD_REQUEST)
