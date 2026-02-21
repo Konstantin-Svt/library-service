@@ -3,6 +3,7 @@ from decimal import Decimal
 import stripe
 from django.conf import settings
 from django.http import HttpRequest
+from rest_framework.exceptions import ValidationError
 from rest_framework.reverse import reverse
 
 from borrowings.models import Borrowing
@@ -80,11 +81,14 @@ def create_stripe_payment(
     """
     days = calculate_payable_days(borrowing, payment_type)
     price = calculate_price(borrowing.book.daily_fee, days, payment_type)
-    session = stripe.checkout.Session.create(
-        **build_stripe_kwargs(
-            request, borrowing.book.title, payment_type, days, price
+    try:
+        session = stripe.checkout.Session.create(
+            **build_stripe_kwargs(
+                request, borrowing.book.title, payment_type, days, price
+            )
         )
-    )
+    except stripe.StripeError:
+        raise ValidationError(f"A Stripe error occurred")
     payment = Payment.objects.create(
         status=Payment.PaymentStatus.PENDING,
         type=payment_type,

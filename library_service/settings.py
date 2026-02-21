@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from celery.schedules import crontab
@@ -94,8 +95,12 @@ WSGI_APPLICATION = "library_service.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB"),
+        "USER": os.environ.get("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "PORT": os.environ.get("POSTGRES_PORT"),
+        "HOST": os.environ.get("POSTGRES_HOST", "db"),
     }
 }
 
@@ -147,6 +152,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
 }
 
 # TELEGRAM
@@ -158,6 +164,8 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 # CELERY
 
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL")
+if CELERY_BROKER_URL is None:
+    CELERY_TASK_ALWAYS_EAGER=True
 
 CELERY_BEAT_SCHEDULE = {
     "send-overdue-every-morning": {
@@ -168,7 +176,9 @@ CELERY_BEAT_SCHEDULE = {
 
 # STRIPE
 
-STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "test")
+if STRIPE_SECRET_KEY == "test":
+    print("STRIPE_SECRET_KEY is set to 'test', no real connection to Stripe")
 
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
