@@ -3,6 +3,7 @@ from decimal import Decimal
 import stripe
 from django.conf import settings
 from django.http import HttpRequest
+from rest_framework.exceptions import ValidationError
 from rest_framework.reverse import reverse
 
 from borrowings.models import Borrowing
@@ -30,7 +31,7 @@ def calculate_price(
 ) -> Decimal:
     multiplier = 1
     if payment_type == Payment.PaymentType.FINE:
-        multiplier = settings.FINE_MULTIPLIER
+        multiplier = settings.STRIPE_FINE_MULTIPLIER
     return daily_fee * days * multiplier
 
 
@@ -74,14 +75,20 @@ def create_stripe_payment(
     borrowing: Borrowing,
     payment_type: Payment.PaymentType = Payment.PaymentType.PAYMENT,
 ) -> Payment:
-    """Accepts request as first parameter to create success & cancel urls"""
+    """
+    Accepts request as first parameter
+    to create success & cancel urls.
+    """
     days = calculate_payable_days(borrowing, payment_type)
     price = calculate_price(borrowing.book.daily_fee, days, payment_type)
-    session = stripe.checkout.Session.create(
-        **build_stripe_kwargs(
-            request, borrowing.book.title, payment_type, days, price
+    try:
+        session = stripe.checkout.Session.create(
+            **build_stripe_kwargs(
+                request, borrowing.book.title, payment_type, days, price
+            )
         )
-    )
+    except stripe.StripeError:
+        raise ValidationError(f"A Stripe error occurred")
     payment = Payment.objects.create(
         status=Payment.PaymentStatus.PENDING,
         type=payment_type,

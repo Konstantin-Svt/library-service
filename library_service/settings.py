@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from celery.schedules import crontab
@@ -25,12 +26,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-3n7z*0pr-+^6b&uzc*-a=s!=&#kcz!w@*@@q#il%09z%t*_$k@"
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-3n7z*0pr-+^6b&uzc*-a=s!=&#kcz!w@*@@q#il%09z%t*_$k@"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1", "0.0.0.0"]
 
 INTERNAL_IPS = ["127.0.0.1"]
 
@@ -46,6 +50,7 @@ INSTALLED_APPS = [
     #libs
     "debug_toolbar",
     "rest_framework",
+    "drf_spectacular",
     #apps
     "books",
     "users",
@@ -90,8 +95,12 @@ WSGI_APPLICATION = "library_service.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB"),
+        "USER": os.environ.get("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "PORT": os.environ.get("POSTGRES_PORT"),
+        "HOST": os.environ.get("POSTGRES_HOST", "db"),
     }
 }
 
@@ -134,6 +143,18 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"
+}
+
+SIMPLE_JWT = {
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+}
+
 # TELEGRAM
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -142,7 +163,7 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 # CELERY
 
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL")
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 
 CELERY_BEAT_SCHEDULE = {
     "send-overdue-every-morning": {
@@ -151,11 +172,11 @@ CELERY_BEAT_SCHEDULE = {
     }
 }
 
-CELERY_TASK_ALWAYS_EAGER = True
-
 # STRIPE
 
-STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "test")
+if STRIPE_SECRET_KEY == "test":
+    print("STRIPE_SECRET_KEY is set to 'test', no real connection to Stripe")
 
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 

@@ -3,6 +3,8 @@ from datetime import date
 import django.core.exceptions
 from django.db import transaction
 from django.db.models import F
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -60,6 +62,21 @@ class BorrowingViewSet(
             return qs
         return qs.filter(user=self.request.user)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="is_active",
+                type=OpenApiTypes.INT,
+                description="Whether the borrowing is "
+                            "active (absent actual_return_date = book "
+                            "is not returned) or not. Accepts 1 for "
+                            "active and 0 for inactive.",
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         with transaction.atomic():
             book = Book.objects.select_for_update().get(
@@ -81,6 +98,9 @@ class BorrowingViewSet(
         url_name="return",
     )
     def return_book(self, request, *args, **kwargs):
+        """
+        Endpoint to return a borrowed book.
+        """
         borrowing = self.get_object()
         if borrowing.actual_return_date is not None:
             raise ValidationError(
