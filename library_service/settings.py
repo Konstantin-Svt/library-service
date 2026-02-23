@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -132,12 +133,19 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-#TELEGRAM
+# TELEGRAM
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-#CELERY
+# CELERY
 
-CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL")
+
+CELERY_BEAT_SCHEDULE = {
+    "send-overdue-every-morning": {
+        "task": "notifications.tasks.send_overdue_borrowings",
+        "schedule": crontab(hour=10, minute=0)
+    }
+}
