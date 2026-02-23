@@ -163,9 +163,7 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 # CELERY
 
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL")
-if CELERY_BROKER_URL is None:
-    CELERY_TASK_ALWAYS_EAGER=True
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 
 CELERY_BEAT_SCHEDULE = {
     "send-overdue-every-morning": {
