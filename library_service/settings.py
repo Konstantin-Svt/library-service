@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     #libs
     "debug_toolbar",
     "rest_framework",
+    #apps
+    "books",
 ]
 
 MIDDLEWARE = [
