@@ -1,11 +1,12 @@
 from datetime import date
 
+import django.core.exceptions
 from django.db import transaction
 from django.db.models import F
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from books.models import Book
@@ -15,6 +16,7 @@ from borrowings.serializers import (
     BorrowingDetailSerializer,
     BorrowingCreateSerializer,
 )
+from payments.models import Payment
 from payments.services import create_stripe_payment
 
 
@@ -74,7 +76,7 @@ class BorrowingViewSet(
     @action(
         detail=True,
         methods=["POST"],
-        permission_classes=(IsAdminUser,),
+        permission_classes=(IsAuthenticated,),
         url_path="return",
         url_name="return",
     )
@@ -87,9 +89,24 @@ class BorrowingViewSet(
 
         with transaction.atomic():
             borrowing.actual_return_date = date.today()
-            borrowing.save(update_fields=["actual_return_date"])
+            try:
+                borrowing.save(update_fields=["actual_return_date"])
+            except django.core.exceptions.ValidationError as e:
+                raise ValidationError(str(e))
 
             borrowing.book.inventory = F("inventory") + 1
             borrowing.book.save(update_fields=["inventory"])
+            response_text = {"status": "ok"}
 
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            if borrowing.actual_return_date > borrowing.expected_return_date:
+                payment = create_stripe_payment(
+                    self.request,
+                    borrowing,
+                    payment_type=Payment.PaymentType.FINE,
+                )
+                response_text["status"] = (
+                    "overdue, pay the fine with multiplier"
+                )
+                response_text["session_url"] = payment.session_url
+
+            return Response(response_text, status=status.HTTP_200_OK)

@@ -25,9 +25,18 @@ def calculate_payable_days(
     return days
 
 
+def calculate_price(
+    daily_fee: Decimal, days: int, payment_type: Payment.PaymentType
+) -> Decimal:
+    multiplier = 1
+    if payment_type == Payment.PaymentType.FINE:
+        multiplier = settings.FINE_MULTIPLIER
+    return daily_fee * days * multiplier
+
+
 def build_stripe_kwargs(
     request: HttpRequest,
-    title: str,
+    book_title: str,
     payment_type: Payment.PaymentType,
     days: int,
     price: Decimal,
@@ -41,7 +50,7 @@ def build_stripe_kwargs(
                     "currency": "usd",
                     "product_data": {
                         "name": f"{payment_type.label} for{extra} "
-                        f"borrowing '{title}' "
+                        f"borrowing '{book_title}' "
                         f"for {days} day(s)",
                     },
                     "unit_amount": price_in_cents,
@@ -65,8 +74,9 @@ def create_stripe_payment(
     borrowing: Borrowing,
     payment_type: Payment.PaymentType = Payment.PaymentType.PAYMENT,
 ) -> Payment:
+    """Accepts request as first parameter to create success & cancel urls"""
     days = calculate_payable_days(borrowing, payment_type)
-    price = days * borrowing.book.daily_fee
+    price = calculate_price(borrowing.book.daily_fee, days, payment_type)
     session = stripe.checkout.Session.create(
         **build_stripe_kwargs(
             request, borrowing.book.title, payment_type, days, price
@@ -83,8 +93,12 @@ def create_stripe_payment(
     return payment
 
 
-def is_paid(session_id: str) -> bool:
-    if session_id:
-        session = stripe.checkout.Session.retrieve(session_id)
-        return session.payment_status == "paid"
-    return False
+def mark_paid(session_id: str) -> None:
+    payment = Payment.objects.filter(
+        session_id=session_id,
+        status=Payment.PaymentStatus.PENDING,
+    ).first()
+
+    if payment:
+        payment.status = Payment.PaymentStatus.PAID
+        payment.save(update_fields=["status"])

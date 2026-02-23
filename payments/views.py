@@ -1,12 +1,16 @@
+import stripe
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, mixins, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import ValidationError
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from library_service.settings import STRIPE_WEBHOOK_SECRET
 from payments.models import Payment
 from payments.serializers import PaymentSerializer
-from payments.services import is_paid
+from payments.services import mark_paid
 
 
 class PaymentsViewSet(
@@ -34,18 +38,10 @@ class PaymentsViewSet(
         if not session_id:
             raise ValidationError("session_id query param is required")
 
-        try:
-            payment = Payment.objects.get(session_id=session_id)
-        except Payment.DoesNotExist:
-            raise ValidationError("Payment does not exist.")
+        payment = get_object_or_404(self.get_queryset(), session_id=session_id)
 
-        if is_paid(session_id):
-            if payment.status == Payment.PaymentStatus.PENDING:
-                payment.status = Payment.PaymentStatus.PAID
-                payment.save(update_fields=["status"])
-            return Response({"status": "success"}, status=status.HTTP_200_OK)
         return Response(
-            {"status": "failure"}, status=status.HTTP_402_PAYMENT_REQUIRED
+            {"status": payment.get_status_display()}, status=status.HTTP_200_OK
         )
 
     @action(
@@ -61,14 +57,34 @@ class PaymentsViewSet(
         if not session_id:
             raise ValidationError("session_id query param is required")
 
-        try:
-            Payment.objects.get(session_id=session_id)
-        except Payment.DoesNotExist:
-            raise ValidationError("Payment does not exist.")
+        get_object_or_404(self.get_queryset(), session_id=session_id)
 
         return Response(
             {
-                "status": "canceled, can be paid later (session is valid for 24h)"
+                "status": "canceled, can be paid later "
+                "(session is valid for 24h)"
             },
             status=status.HTTP_200_OK,
         )
+
+
+@csrf_exempt
+@api_view(http_method_names=["POST"])
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except (ValueError, stripe.error.SignatureVerificationError):
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    if (
+        event["type"] == "checkout.session.completed"
+        or event["type"] == "checkout.session.async_payment_succeeded"
+    ):
+        mark_paid(event["data"]["object"]["id"])
+
+    return Response(status=status.HTTP_200_OK)
