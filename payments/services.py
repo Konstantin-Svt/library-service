@@ -88,7 +88,7 @@ def create_stripe_payment(
             )
         )
     except stripe.StripeError:
-        raise ValidationError(f"A Stripe error occurred")
+        raise ValidationError("A Stripe error occurred")
     payment = Payment.objects.create(
         status=Payment.PaymentStatus.PENDING,
         type=payment_type,
