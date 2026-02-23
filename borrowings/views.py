@@ -39,23 +39,13 @@ class BorrowingViewSet(
 
         if self.action == "list":
             is_active = self.request.query_params.get("is_active")
-            if is_active and is_active.lower() in (
-                "true",
-                "yes",
-                "1",
-                "active",
-                "y",
-            ):
-                qs = qs.filter(actual_return_date=None)
-            elif is_active and is_active.lower() in (
-                "false",
-                "no",
-                "not",
-                "0",
-                "inactive",
-                "n",
-            ):
-                qs = qs.exclude(actual_return_date=None)
+            if is_active is not None:
+                if is_active == "1":
+                    qs = qs.filter(actual_return_date=None)
+                elif is_active == "0":
+                    qs = qs.exclude(actual_return_date=None)
+                else:
+                    raise ValidationError("Invalid value for is_active")
 
             user_id = self.request.query_params.get("user_id")
             if user_id:
