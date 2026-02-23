@@ -15,6 +15,7 @@ from borrowings.serializers import (
     BorrowingDetailSerializer,
     BorrowingCreateSerializer,
 )
+from payments.services import create_stripe_payment
 
 
 class BorrowingViewSet(
@@ -23,7 +24,9 @@ class BorrowingViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Borrowing.objects.select_related("book")
+    queryset = Borrowing.objects.select_related("book").prefetch_related(
+        "payments"
+    )
     permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):
@@ -64,7 +67,9 @@ class BorrowingViewSet(
                 raise ValidationError(f"No more books '{book.title}' left!")
             book.inventory = F("inventory") - 1
             book.save(update_fields=["inventory"])
-            serializer.save(user=self.request.user)
+
+            borrowing = serializer.save(user=self.request.user)
+            create_stripe_payment(borrowing)
 
     @action(
         detail=True,
