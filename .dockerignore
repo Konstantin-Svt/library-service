@@ -1,0 +1,10 @@
+.github
+.venv
+venv
+.env.sample
+*.flake8
+*.sqlite3
+*.md
+__pycache__/
+.idea
+fixtures
