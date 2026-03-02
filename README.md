@@ -31,4 +31,3 @@ API service for Library managment written with the help of DRF
   - Documentation ```127.0.0.1:8000/api/schema/swagger-ui/```
   - Obtain JWT token at ```127.0.0.1:8000/api/users/token/```
   - Other API is available at ```127.0.0.1:8000/api/borrowings/``` or ```127.0.0.1:8000/api/books/``` or ```127.0.0.1:8000/api/payments/```
-  - Implemented tasks 1-15 from https://docs.google.com/document/d/1wkWketx6ROKlrfpUqKJEJhS8EzVe3BOX (without "Coding Optional")
